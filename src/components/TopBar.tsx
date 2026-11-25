@@ -417,7 +417,7 @@ export function TopBar({ urlInputRef, onCaptureAll, capturing }: TopBarProps) {
           value={mode}
           onChange={setMode}
           options={[
-            { value: 'devices', label: 'Devices', icon: Monitor },
+            { value: 'devices', label: 'Previews', icon: Monitor },
             { value: 'breakpoints', label: 'Breakpoints', icon: Ruler },
           ]}
         />
