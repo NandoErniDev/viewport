@@ -339,6 +339,7 @@ export const PreviewPane = memo(function PreviewPane({
               height: outerHeight,
               padding: `${spec.pad}px ${spec.pad}px ${spec.pad + spec.chin}px`,
               borderRadius: spec.bodyRadius,
+              ['--body-r' as string]: `${spec.bodyRadius}px`,
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
             }}
@@ -454,6 +455,7 @@ export const PreviewPane = memo(function PreviewPane({
                 'sync-pill',
                 mirrorAvailable === true && 'is-on',
                 mirrorAvailable === false && 'is-unavailable',
+                mirrorAvailable === null && 'is-pending',
               )}
               title={
                 mirrorAvailable === false
@@ -464,7 +466,7 @@ export const PreviewPane = memo(function PreviewPane({
               }
             >
               {mirrorAvailable === false ? <Link2Off size={11} /> : <MousePointerClick size={11} />}
-              {mirrorAvailable === false ? 'No mirror' : 'Mirrored'}
+              {mirrorAvailable === false ? 'No mirror' : mirrorAvailable === true ? 'Mirrored' : 'Mirror…'}
             </span>
           ) : null}
           {syncScroll ? (
@@ -473,6 +475,7 @@ export const PreviewPane = memo(function PreviewPane({
                 'sync-pill',
                 syncAvailable === true && 'is-on',
                 syncAvailable === false && 'is-unavailable',
+                syncAvailable === null && 'is-pending',
               )}
               title={
                 syncAvailable === false
@@ -483,7 +486,7 @@ export const PreviewPane = memo(function PreviewPane({
               }
             >
               {syncAvailable === false ? <Link2Off size={11} /> : <Link2 size={11} />}
-              {syncAvailable === false ? 'No sync' : 'Synced'}
+              {syncAvailable === false ? 'No sync' : syncAvailable === true ? 'Synced' : 'Sync…'}
             </span>
           ) : null}
           <div className="popover-wrap">
