@@ -83,3 +83,136 @@ export const DEFAULT_DEVICE_IDS = ['iphone-16-pro', 'ipad-air-11', 'macbook-air-
 export function dimensionsLabel(width: number, height: number): string {
   return `${Math.round(width)} × ${Math.round(height)}`
 }
+
+/* ------------------------------------------------------------------ hardware */
+
+export type DeviceTone = 'titanium' | 'aluminum' | 'graphite' | 'glass' | 'none'
+
+/** Physical proportions of a device body, in the device's own CSS pixels. */
+export interface FrameSpec {
+  /** Bezel thickness around the screen. */
+  pad: number
+  /** Extra body below the screen (a laptop chin). */
+  chin: number
+  /** Outer body corner radius. */
+  bodyRadius: number
+  /** Display corner radius. */
+  screenRadius: number
+  tone: DeviceTone
+  island: 'dynamic' | 'notch' | 'none'
+  buttons: boolean
+  camera: boolean
+}
+
+const BARE: FrameSpec = {
+  pad: 0,
+  chin: 0,
+  bodyRadius: 0,
+  screenRadius: 0,
+  tone: 'none',
+  island: 'none',
+  buttons: false,
+  camera: false,
+}
+
+type FrameInput = Pick<Preview, 'category' | 'presetId' | 'width' | 'height' | 'frameStyle'>
+
+/**
+ * Body geometry per device family. Real hardware proportions: a phone bezel is a
+ * few percent of the screen width, a tablet's is wider, a laptop has a chin.
+ */
+export function frameSpec(preview: FrameInput): FrameSpec {
+  if (preview.frameStyle === 'none') return BARE
+
+  if (preview.frameStyle === 'outline') {
+    return { ...BARE, pad: 0, bodyRadius: 10, screenRadius: 8, tone: 'glass' }
+  }
+
+  switch (preview.category) {
+    case 'phone':
+      return preview.presetId.startsWith('iphone')
+        ? {
+            pad: 11,
+            chin: 0,
+            bodyRadius: 62,
+            screenRadius: 52,
+            tone: 'titanium',
+            island: 'dynamic',
+            buttons: true,
+            camera: false,
+          }
+        : {
+            pad: 10,
+            chin: 0,
+            bodyRadius: 44,
+            screenRadius: 34,
+            tone: 'graphite',
+            island: 'notch',
+            buttons: true,
+            camera: false,
+          }
+
+    case 'tablet':
+      return {
+        pad: 16,
+        chin: 0,
+        bodyRadius: 30,
+        screenRadius: 20,
+        tone: 'aluminum',
+        island: 'none',
+        buttons: false,
+        camera: true,
+      }
+
+    case 'laptop':
+      return {
+        pad: 9,
+        chin: 22,
+        bodyRadius: 15,
+        screenRadius: 7,
+        tone: 'aluminum',
+        island: 'none',
+        buttons: false,
+        camera: true,
+      }
+
+    case 'desktop':
+      return {
+        pad: 9,
+        chin: 22,
+        bodyRadius: 12,
+        screenRadius: 6,
+        tone: 'graphite',
+        island: 'none',
+        buttons: false,
+        camera: false,
+      }
+
+    default: {
+      const short = Math.min(preview.width, preview.height)
+      const radius = Math.max(10, Math.min(44, Math.round(short * 0.05)))
+      return {
+        pad: 9,
+        chin: 0,
+        bodyRadius: radius,
+        screenRadius: Math.max(4, radius - 7),
+        tone: 'graphite',
+        island: 'none',
+        buttons: false,
+        camera: false,
+      }
+    }
+  }
+}
+
+/** Outer size of the device including its body. */
+export function framedSize(
+  preview: FrameInput,
+): { width: number; height: number; spec: FrameSpec } {
+  const spec = frameSpec(preview)
+  return {
+    width: preview.width + spec.pad * 2,
+    height: preview.height + spec.pad * 2 + spec.chin,
+    spec,
+  }
+}

@@ -93,6 +93,7 @@ export interface WorkspaceConfig {
   layout: Layout
   zoom: number
   syncScroll: boolean
+  syncInput: boolean
   syncNav: boolean
   showFrames: boolean
   breakpoints: number[]

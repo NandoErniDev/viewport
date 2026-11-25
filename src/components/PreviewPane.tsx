@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   ArrowUpRight,
   Camera,
@@ -7,14 +7,19 @@ import {
   Link2Off,
   Maximize2,
   Minimize2,
+  MousePointerClick,
   RefreshCw,
   RotateCw,
+  ShieldAlert,
   X,
 } from 'lucide-react'
 import type { Layout, Preview, Rect } from '../lib/types'
 import { cn, displayUrl } from '../lib/utils'
 import { useWorkspace } from '../lib/store'
 import { attachScrollSync, registerPane } from '../lib/sync'
+import { attachMirrorWhenReady, type MirrorHandlers } from '../lib/mirror'
+import { checkEmbedding, type FrameVerdict } from '../lib/frameHealth'
+import { framedSize } from '../lib/devices'
 import { IconButton, Popover } from './ui'
 
 interface PreviewPaneProps {
@@ -25,10 +30,12 @@ interface PreviewPaneProps {
   layout: Layout
   showFrames: boolean
   syncScroll: boolean
+  syncInput: boolean
   rect?: Rect
   onRectChange: (rect: Rect) => void
   onScrolled: (instanceId: string, ratio: number) => void
   onCapture: (instanceId: string) => void
+  onFrameNavigate: (href: string) => void
 }
 
 function clampScale(value: number): number {
@@ -45,10 +52,12 @@ export const PreviewPane = memo(function PreviewPane({
   layout,
   showFrames,
   syncScroll,
+  syncInput,
   rect,
   onRectChange,
   onScrolled,
   onCapture,
+  onFrameNavigate,
 }: PreviewPaneProps) {
   const url = preview.url ?? workspaceUrl
   const externalUrl = url.startsWith('/') ? new URL(url, window.location.href).toString() : url
@@ -68,6 +77,9 @@ export const PreviewPane = memo(function PreviewPane({
   const [noticeDismissed, setNoticeDismissed] = useState(false)
   const [embedHelpOpen, setEmbedHelpOpen] = useState(false)
   const [syncAvailable, setSyncAvailable] = useState<boolean | null>(null)
+  const [mirrorAvailable, setMirrorAvailable] = useState<boolean | null>(null)
+  const [verdict, setVerdict] = useState<FrameVerdict | null>(null)
+  const [verdictDismissed, setVerdictDismissed] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 })
   const [dragRect, setDragRect] = useState<Rect | null>(null)
@@ -76,6 +88,10 @@ export const PreviewPane = memo(function PreviewPane({
   )
 
   const effectiveFrame = showFrames ? preview.frameStyle : 'none'
+  const { width: outerWidth, height: outerHeight, spec } = useMemo(
+    () => framedSize({ ...preview, frameStyle: effectiveFrame }),
+    [preview, effectiveFrame],
+  )
 
   /* ------------------------------------------------------------- scale */
 
@@ -91,13 +107,11 @@ export const PreviewPane = memo(function PreviewPane({
     return () => observer.disconnect()
   }, [])
 
-  // `stageSize` is the canvas content box, so only the frame chrome and a small
-  // gutter need to be subtracted here.
-  const bezel = effectiveFrame === 'bezel' ? 18 : effectiveFrame === 'outline' ? 2 : 0
+  // `stageSize` is the canvas content box, so only a small gutter is subtracted.
   const fitScale = clampScale(
     Math.min(
-      (Math.max(stageSize.width, 120) - bezel - 14) / preview.width,
-      (Math.max(stageSize.height, 120) - bezel - 14) / preview.height,
+      (Math.max(stageSize.width, 120) - 14) / outerWidth,
+      (Math.max(stageSize.height, 120) - 14) / outerHeight,
     ),
   )
   const scale = zoom === 0 ? fitScale : zoom
@@ -108,6 +122,9 @@ export const PreviewPane = memo(function PreviewPane({
     setLoaded(false)
     setStalled(false)
     setNoticeDismissed(false)
+    setVerdict(null)
+    setVerdictDismissed(false)
+    setMirrorAvailable(null)
   }, [url, preview.nonce])
 
   useEffect(() => {
@@ -119,7 +136,21 @@ export const PreviewPane = memo(function PreviewPane({
     return () => window.clearTimeout(timer)
   }, [loaded, url, preview.nonce])
 
-  /* -------------------------------------------------------- scroll sync */
+  /* -------------------------------------------------------- frame health */
+
+  useEffect(() => {
+    let cancelled = false
+    setVerdict(null)
+    checkEmbedding(url).then((result) => {
+      if (cancelled) return
+      if (result.state === 'blocked' || result.state === 'unreachable') setVerdict(result)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [url, preview.nonce])
+
+  /* --------------------------------------------------------- scroll sync */
 
   useEffect(() => {
     const frame = iframeRef.current
@@ -141,6 +172,25 @@ export const PreviewPane = memo(function PreviewPane({
       registerPane(preview.instanceId, null)
     }
   }, [syncScroll, preview.instanceId, preview.nonce, url, onScrolled])
+
+  /* ------------------------------------------------------- input mirror */
+
+  useEffect(() => {
+    const frame = iframeRef.current
+    if (!frame) return
+
+    if (!syncInput) {
+      setMirrorAvailable(null)
+      return
+    }
+
+    const handlers: MirrorHandlers = {
+      onAvailability: setMirrorAvailable,
+      onNavigate: onFrameNavigate,
+    }
+
+    return attachMirrorWhenReady(preview.instanceId, frame, handlers)
+  }, [syncInput, preview.instanceId, preview.nonce, url, onFrameNavigate])
 
   useEffect(() => {
     const onChange = () => setFullscreen(document.fullscreenElement === paneRef.current)
@@ -196,7 +246,8 @@ export const PreviewPane = memo(function PreviewPane({
         })()
       : undefined
 
-  const showBlockedNotice = stalled && !noticeDismissed
+  const blocked = verdict !== null && !verdictDismissed
+  const slow = stalled && !loaded && !noticeDismissed && !blocked
 
   return (
     <section
@@ -273,50 +324,109 @@ export const PreviewPane = memo(function PreviewPane({
       </header>
 
       <div className="pane__canvas" ref={stageRef}>
-        <div className="pane__frame">
-          <div className={cn('device', `device--${effectiveFrame}`)} style={{ '--s': scale } as CSSProperties}>
+        <div
+          className="pane__frame"
+          style={{ width: outerWidth * scale, height: outerHeight * scale }}
+        >
+          <div
+            className={cn(
+              'device',
+              `device--${spec.tone}`,
+              spec.island === 'dynamic' && 'device--island',
+            )}
+            style={{
+              width: outerWidth,
+              height: outerHeight,
+              padding: `${spec.pad}px ${spec.pad}px ${spec.pad + spec.chin}px`,
+              borderRadius: spec.bodyRadius,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            {spec.buttons ? (
+              <span className="device__buttons" aria-hidden="true">
+                <i className="device__btn device__btn--silent" />
+                <i className="device__btn device__btn--vol-up" />
+                <i className="device__btn device__btn--vol-down" />
+                <i className="device__btn device__btn--power" />
+              </span>
+            ) : null}
+
+            {spec.camera ? <span className="device__camera" aria-hidden="true" /> : null}
+
             <div
               className="device__screen"
               data-capture={preview.instanceId}
-              style={{ width: preview.width * scale, height: preview.height * scale }}
+              style={{
+                width: preview.width,
+                height: preview.height,
+                borderRadius: spec.screenRadius,
+              }}
             >
               <iframe
                 key={`${url}-${preview.nonce}`}
                 ref={iframeRef}
                 src={url}
                 title={`${preview.name} preview of ${displayUrl(url)}`}
-                style={{
-                  width: preview.width,
-                  height: preview.height,
-                  transform: `scale(${scale})`,
-                }}
+                style={{ width: preview.width, height: preview.height }}
                 onLoad={() => setLoaded(true)}
                 referrerPolicy="no-referrer-when-downgrade"
                 allow="fullscreen; clipboard-read; clipboard-write"
-                loading="lazy"
               />
+
+              {spec.island === 'dynamic' ? (
+                <span className="device__island" aria-hidden="true" />
+              ) : null}
+              {spec.island === 'notch' ? <span className="device__notch" aria-hidden="true" /> : null}
+
+              {blocked ? <div className="device__shield" aria-hidden="true" /> : null}
             </div>
-            {effectiveFrame === 'bezel' && preview.category === 'phone' ? (
-              <div className="device__island" aria-hidden="true" />
-            ) : null}
           </div>
         </div>
 
-        {!loaded ? (
+        {!loaded && !blocked ? (
           <div className="pane__loader">
             <div className="spinner" aria-hidden="true" />
             <span>Loading {displayUrl(url)}…</span>
           </div>
         ) : null}
 
-        {showBlockedNotice ? (
+        {blocked ? (
+          <div className="pane__notice pane__notice--blocked" role="status">
+            <ShieldAlert size={14} strokeWidth={1.8} />
+            <div style={{ flex: 1 }}>
+              <strong>{new URL(externalUrl).host} refuses to be embedded</strong>
+              {verdict && verdict.detail ? <span className="mono">{verdict.detail}</span> : null}
+              {verdict && verdict.state === 'unreachable'
+                ? ' The site did not answer. It may be offline, slow, or blocking requests.'
+                : ' Browsers refuse to render it in any iframe, which is why the frame stays blank. That is a property of the site, not of VIEWPORT.'}
+              <div className="pane__notice-actions">
+                <a href={externalUrl} target="_blank" rel="noreferrer noopener">
+                  Open in a new tab
+                </a>
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => reloadPreview(preview.instanceId)}
+                >
+                  Try again
+                </button>
+                <button type="button" className="link" onClick={() => setVerdictDismissed(true)}>
+                  Show the frame anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {slow ? (
           <div className="pane__notice" role="status">
             <Info size={14} strokeWidth={1.8} />
             <div style={{ flex: 1 }}>
               <strong>This preview is taking a while</strong>
-              Some sites block embedding with X-Frame-Options or a CSP frame-ancestors rule, which
-              leaves the frame blank. Open it in a new tab to test it at this size.
-              <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+              The site may be slow, offline, or blocking embedding with X-Frame-Options or a CSP
+              frame-ancestors rule.
+              <div className="pane__notice-actions">
                 <a href={externalUrl} target="_blank" rel="noreferrer noopener">
                   Open in a new tab
                 </a>
@@ -338,6 +448,25 @@ export const PreviewPane = memo(function PreviewPane({
           <span className="mono">{preview.orientation}</span>
         </div>
         <div className="pane__foot-group">
+          {syncInput ? (
+            <span
+              className={cn(
+                'sync-pill',
+                mirrorAvailable === true && 'is-on',
+                mirrorAvailable === false && 'is-unavailable',
+              )}
+              title={
+                mirrorAvailable === false
+                  ? 'Input mirroring needs a same-origin preview: browsers do not expose the contents of a cross-origin frame, so no tool can replay a click into it.'
+                  : mirrorAvailable === true
+                    ? 'Clicks, typing and keys are mirrored with every preview of the same page.'
+                    : 'Checking whether this frame can be mirrored…'
+              }
+            >
+              {mirrorAvailable === false ? <Link2Off size={11} /> : <MousePointerClick size={11} />}
+              {mirrorAvailable === false ? 'No mirror' : 'Mirrored'}
+            </span>
+          ) : null}
           {syncScroll ? (
             <span
               className={cn(
@@ -375,8 +504,8 @@ export const PreviewPane = memo(function PreviewPane({
               <div className="popover__label">If the frame is empty</div>
               <p className="field-hint" style={{ padding: '0 10px 8px' }}>
                 Many sites set <code>X-Frame-Options</code> or a CSP <code>frame-ancestors</code> rule
-                that stops other domains from embedding them. VIEWPORT reports this instead of
-                bypassing it.
+                that stops other domains from embedding them. VIEWPORT reads those headers and names
+                the rule instead of bypassing it.
               </p>
               <a className="menu-item" href={externalUrl} target="_blank" rel="noreferrer noopener">
                 <ArrowUpRight size={13} /> Open the site in a new tab

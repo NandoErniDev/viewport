@@ -210,88 +210,183 @@
   transition: none;
 }
 
-/* ------------------------------------------------------------- device chrome */
+/* -------------------------------------------------------- device hardware */
 
 .device {
-  --s: 1;
   position: relative;
+  flex: none;
+  box-sizing: border-box;
   background: #05060a;
 }
 
-.device--bezel {
-  padding: max(2px, calc(8px * var(--s)));
-  border-radius: max(6px, calc(30px * var(--s)));
-  background: linear-gradient(160deg, #1b1e25, #0a0b0e 45%, #14161c);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 24px 50px -22px rgba(0, 0, 0, 0.9),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+/* Machined edge: a bright catch on the top-left, a dark fall-off, a cast shadow. */
+.device--titanium {
+  background: linear-gradient(
+    148deg,
+    #bab9b5 0%,
+    #6f6e6a 17%,
+    #3a3a3e 41%,
+    #6b6a64 61%,
+    #2b2b2f 83%,
+    #86857f 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.85),
+    0 30px 60px -28px rgba(0, 0, 0, 0.95);
 }
 
-.device--bezel .device__screen {
-  border-radius: max(4px, calc(22px * var(--s)));
-  overflow: hidden;
-  background: #fff;
+.device--aluminum {
+  background: linear-gradient(
+    150deg,
+    #dadbdd 0%,
+    #a2a3a7 20%,
+    #cfd0d2 43%,
+    #8e8f93 67%,
+    #c2c3c5 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 30px 60px -28px rgba(0, 0, 0, 0.95);
 }
 
-.device--outline {
-  padding: 0;
-  border-radius: max(2px, calc(7px * var(--s)));
+.device--graphite {
+  background: linear-gradient(150deg, #4a4c52 0%, #24262b 26%, #404248 52%, #1b1d21 78%, #4e5057 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 1px rgba(0, 0, 0, 0.9),
+    0 30px 60px -28px rgba(0, 0, 0, 0.95);
+}
+
+.device--glass {
+  background: #0a0b0e;
   box-shadow: 0 0 0 1px var(--line-3), 0 20px 44px -24px rgba(0, 0, 0, 0.9);
 }
 
-.device--outline .device__screen {
-  border-radius: max(2px, calc(7px * var(--s)));
-  overflow: hidden;
-  background: #fff;
-}
-
 .device--none {
-  padding: 0;
-  box-shadow: 0 0 0 1px var(--line-2);
-}
-
-.device--none .device__screen {
-  overflow: hidden;
-  background: #fff;
+  background: transparent;
+  box-shadow: none;
 }
 
 .device__screen {
   position: relative;
+  overflow: hidden;
   background: #fff;
+  /* the display sits a hair below the body surface */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .device__screen iframe {
   display: block;
   border: 0;
   background: #fff;
-  transform-origin: 0 0;
   color-scheme: light;
 }
 
-.device__notch {
+.device__shield {
   position: absolute;
-  top: calc(5px * var(--s));
-  left: 50%;
-  transform: translateX(-50%);
-  width: 30%;
-  height: max(2px, calc(13px * var(--s)));
-  border-radius: 99px;
-  background: #05060a;
-  z-index: 3;
+  inset: 0;
+  z-index: 2;
+  background: #0b0c10;
+}
+
+.device__buttons {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
-  opacity: 0.92;
+  z-index: 3;
+}
+
+.device__btn {
+  position: absolute;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #1c1d21, #8d8c86 45%, #37373b);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.7);
+}
+
+.device__btn--silent {
+  left: -3px;
+  top: 15%;
+  height: 20px;
+}
+
+.device__btn--vol-up {
+  left: -3px;
+  top: 23%;
+  height: 33px;
+}
+
+.device__btn--vol-down {
+  left: -3px;
+  top: 32%;
+  height: 33px;
+}
+
+.device__btn--power {
+  right: -3px;
+  top: 26%;
+  height: 52px;
 }
 
 .device__island {
   position: absolute;
-  top: calc(9px * var(--s));
+  top: 9px;
   left: 50%;
   transform: translateX(-50%);
-  width: max(4px, calc(62px * var(--s)));
-  height: max(2px, calc(19px * var(--s)));
+  width: 29%;
+  max-width: 132px;
+  height: 33px;
   border-radius: 99px;
-  background: #05060a;
+  background: #000;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 1px 2px rgba(0, 0, 0, 0.35);
   z-index: 3;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 9px;
+}
+
+.device__island::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #3a4760 0%, #0a0e14 65%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.device__notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 42%;
+  height: 26px;
+  border-radius: 0 0 16px 16px;
+  background: #000;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.device__camera {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #0a0c10;
+  box-shadow: inset 0 0 1px rgba(120, 160, 220, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.14);
+  z-index: 4;
 }
 
 /* ------------------------------------------------------------ pane overlays */
@@ -367,6 +462,39 @@
   color: #f6ddc2;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.pane__notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 7px;
+}
+
+.pane__notice .mono {
+  display: inline-block;
+  margin: 0 2px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: -0.02em;
+}
+
+.pane__notice--blocked {
+  border-color: rgba(255, 138, 128, 0.3);
+  background: rgba(34, 18, 18, 0.95);
+  color: #f0c8c4;
+}
+
+.pane__notice--blocked strong {
+  color: #ffd9d5;
+}
+
+.pane__notice--blocked a,
+.pane__notice--blocked button.link {
+  color: #ffd9d5;
 }
 
 .pane__foot {

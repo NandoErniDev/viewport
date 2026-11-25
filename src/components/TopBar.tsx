@@ -56,6 +56,7 @@ export function TopBar({ urlInputRef, onCaptureAll, capturing }: TopBarProps) {
   const zoom = useWorkspace((state) => state.zoom)
   const mode = useWorkspace((state) => state.mode)
   const syncScroll = useWorkspace((state) => state.syncScroll)
+  const syncInput = useWorkspace((state) => state.syncInput)
   const syncNav = useWorkspace((state) => state.syncNav)
   const showFrames = useWorkspace((state) => state.showFrames)
   const recent = useWorkspace((state) => state.recent)
@@ -67,6 +68,7 @@ export function TopBar({ urlInputRef, onCaptureAll, capturing }: TopBarProps) {
   const setZoom = useWorkspace((state) => state.setZoom)
   const setMode = useWorkspace((state) => state.setMode)
   const setSyncScroll = useWorkspace((state) => state.setSyncScroll)
+  const setSyncInput = useWorkspace((state) => state.setSyncInput)
   const setSyncNav = useWorkspace((state) => state.setSyncNav)
   const setShowFrames = useWorkspace((state) => state.setShowFrames)
   const setPanel = useWorkspace((state) => state.setPanel)
@@ -382,11 +384,20 @@ export function TopBar({ urlInputRef, onCaptureAll, capturing }: TopBarProps) {
           >
             <Link2 size={13} strokeWidth={1.8} />
             Sync
-            {syncScroll || !syncNav ? <span className="status-dot" style={{ marginLeft: 2 }} /> : null}
+            {syncScroll || syncInput || !syncNav ? (
+              <span className="status-dot" style={{ marginLeft: 2 }} />
+            ) : null}
           </button>
           <Popover open={syncOpen} onClose={() => setSyncOpen(false)} wide>
             <div className="popover__label">Synchronisation</div>
             <div style={{ padding: '2px 4px 6px' }}>
+              <Switch
+                checked={syncInput}
+                onChange={setSyncInput}
+                label="Mirror clicks, typing and keys"
+              >
+                Clicks &amp; typing
+              </Switch>
               <Switch checked={syncScroll} onChange={setSyncScroll} label="Scroll synchronisation">
                 Scroll position
               </Switch>
@@ -399,8 +410,9 @@ export function TopBar({ urlInputRef, onCaptureAll, capturing }: TopBarProps) {
               <RefreshCw size={13} /> Reload all previews
             </button>
             <p className="field-hint" style={{ padding: '8px 10px 4px' }}>
-              Scroll sync only works where the browser allows reading a frame’s scroll position —
-              same-origin pages. Cross-origin sites report “No sync” rather than pretending.
+              A press, a typed character or a scroll happens once and is replayed into every preview
+              of the same page. Browsers only expose same-origin documents, so a cross-origin site
+              shows “No mirror” instead of pretending — no proxy, no injected script.
             </p>
           </Popover>
         </div>

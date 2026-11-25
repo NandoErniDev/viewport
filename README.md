@@ -22,8 +22,9 @@ VIEWPORT keeps every target viewport visible at once. Each preview is an indepen
 ### Live previews
 - One, two, three or four (up to eight) independent iframes pointing at the same URL by default.
 - Each preview has its own reload, orientation, fullscreen, screenshot, external-open and remove controls.
-- Independent loading state per frame, with a clear message when a site refuses to be framed.
-- Scrolling, clicking and normal interaction work inside each preview wherever the embedded site permits it.
+- Physical frames, not rounded rectangles: titanium phone bodies with a Dynamic Island and side buttons, aluminium tablets, laptops with a chin and camera. Bezel proportions are in device pixels, so they stay correct at every zoom level.
+- Independent loading state per frame. A frame a site refuses to show names the actual rule (`X-Frame-Options: DENY`, `SAMEORIGIN`, CSP `frame-ancestors`) instead of leaving blank white space.
+- Scrolling, clicking and typing work inside each preview wherever the embedded site permits it.
 
 ### Device library
 - 21 presets across phones, tablets, laptops and desktop.
@@ -53,6 +54,7 @@ VIEWPORT keeps every target viewport visible at once. Each preview is an indepen
 - Captures are **real pixels from your display**, taken through the browser's display-capture API and cropped to the preview. This works for cross-origin sites that cannot be rasterised from JavaScript, and the UI says exactly that.
 
 ### Synchronisation
+- **Input mirroring** — press a button, type in a field or move the scroll position in one preview and every other preview of the same page does the same. The devices never drift apart: same tab open, same text typed, same counter. See [Honest limits](#honest-limits) for why this needs a same-origin page.
 - **Navigation sync** — a new URL loads everywhere (it can also target a single preview).
 - **Reload all** — one action (or ⌘/Ctrl + R) refreshes every frame; individual reloads stay individual.
 - **Scroll sync** — mirrors scroll position between previews, only where the browser allows reading a frame's scroll position (same-origin documents). Cross-origin frames are labelled "No sync" instead of silently doing nothing.
@@ -133,7 +135,7 @@ src/
     Workspace.tsx        # workspace orchestration: layouts, capture, shortcuts
   components/
     TopBar.tsx           # URL bar, presets, zoom, layouts, sync, share
-    PreviewPane.tsx      # one live frame: scaling, loading, probe, scroll sync, drag
+    PreviewPane.tsx      # one live frame: hardware body, scaling, health, mirroring, drag
     DeviceLibrary.tsx    # preset drawer
     BreakpointView.tsx   # breakpoint rail + live width slider
     ComparePanel.tsx     # capture comparison studio
@@ -142,12 +144,17 @@ src/
     SettingsPanel.tsx
     ShortcutsDialog.tsx
     ui.tsx               # buttons, popovers, modal, switch, toasts
+api/
+  frame-check.js         # reads X-Frame-Options / CSP so a blank frame can be explained
+src/
   lib/
     types.ts             # domain types
     devices.ts           # device preset library
     store.ts             # workspace state, persistence, sessions, share config
     capture.ts           # display capture + image diff
     sync.ts              # same-origin scroll synchronisation
+    mirror.ts            # click/type/key replay between same-origin previews
+    frameHealth.ts       # embedding-policy check for a preview URL
     router.ts            # pushState router
     utils.ts             # URL normalisation, sharing codec, helpers
   styles/
@@ -177,7 +184,8 @@ There is no way to rasterise a cross-origin iframe from JavaScript — `canvas` 
 The difference map draws both captures into equally sized canvases, compares luminance per pixel and highlights changed areas. It is an approximate visual diff, not a pixel-perfect regression baseline, and is labelled as such.
 
 ### Honest limits
-- **Framing policies.** `X-Frame-Options: DENY/SAMEORIGIN` and CSP `frame-ancestors` stop embedding. VIEWPORT never proxies or strips headers, so it cannot read those headers cross-origin. It detects frames that never finish loading, explains both possible policies and offers an "open in a new tab" action; the per-preview **Blank?** note repeats the explanation on demand.
+- **Framing policies.** `X-Frame-Options: DENY/SAMEORIGIN` and CSP `frame-ancestors` stop embedding. A browser gives the host page no signal at all when this happens — the frame simply stays empty — so VIEWPORT reads the headers from its own `/api/frame-check` endpoint and names the rule that applies. Nothing is proxied and no header is rewritten; the site is explained, not bypassed.
+- **Input mirroring.** A browser exposes the DOM of a same-origin frame only. Click, typing and key replay therefore works between previews of a page on VIEWPORT's own origin (the built-in `/demo/` and anything else on this host) and is impossible for a cross-origin site — no tool can dispatch a real click into a frame it cannot script. Those previews show "No mirror" rather than silently doing nothing, and the sample site is interactive so the behaviour can be seen.
 - **Scroll sync.** Browsers do not expose scroll offsets of cross-origin frames. Sync is applied only to same-origin documents; every other preview shows a "No sync" indicator with an explanation.
 - **Full-page screenshots.** Not possible for cross-origin embeds without a server-side browser. VIEWPORT captures what is visible instead of claiming otherwise.
 - **Device pixel ratio.** A preview runs on the host display; the recorded DPR is a reference value.
@@ -186,7 +194,7 @@ The difference map draws both captures into equally sized canvases, compares lum
 
 ## Deployment
 
-The app is a static bundle. On Vercel: framework **Vite**, build command `npm run build`, output directory `dist`, `vercel.json` rewrites all non-asset paths to `index.html` for the `/workspace` route.
+The app is a static bundle plus one tiny serverless function. On Vercel: framework **Vite**, build command `npm run build`, output directory `dist`, `vercel.json` rewrites all non-asset paths to `index.html` for the `/workspace` route, and `api/frame-check.js` is deployed as a Node function that performs a single `HEAD` request to read framing headers. It refuses loopback and private hosts, returns no response body, and is cached for ten minutes.
 
 DNS: `viewport.naerdev.ch` is a DNS-only CNAME to Vercel's edge, configured in the existing Cloudflare zone for `naerdev.ch`. No other records in that zone are modified.
 
@@ -213,9 +221,9 @@ npx vercel deploy --prod   # or connect the repository in the Vercel dashboard
 
 - Sites that block embedding cannot be previewed; they open in a new tab instead.
 - Screenshots require display-capture support (Chrome, Edge or Safari on HTTPS) and one permission grant per session.
-- Scroll sync is same-origin only, for browser security reasons.
+- Input mirroring and scroll sync are same-origin only, for browser security reasons.
 - Freeform positions are per-workspace and reset when you change layout away from freeform and back.
-- Very heavy sites may load more slowly in several simultaneous frames; previews load lazily and independently.
+- Very heavy sites load more slowly in several simultaneous frames; every preview loads independently and reports its own state.
 
 ---
 

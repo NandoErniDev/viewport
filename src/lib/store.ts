@@ -51,6 +51,7 @@ function sanitizeConfig(config: WorkspaceConfig): {
   layout: Layout
   zoom: number
   syncScroll: boolean
+  syncInput: boolean
   syncNav: boolean
   showFrames: boolean
   breakpoints: number[]
@@ -90,7 +91,8 @@ function sanitizeConfig(config: WorkspaceConfig): {
     previews: previews.length > 0 ? previews : buildDefaultPreviews(),
     layout: layoutList.includes(config.layout) ? config.layout : 'grid',
     zoom: typeof config.zoom === 'number' && Number.isFinite(config.zoom) ? clamp(config.zoom, 0, 1) : 0,
-    syncScroll: Boolean(config.syncScroll),
+    syncScroll: config.syncScroll !== false,
+    syncInput: config.syncInput !== false,
     syncNav: config.syncNav !== false,
     showFrames: config.showFrames !== false,
     breakpoints: Array.from(new Set(breakpoints)).sort((a, b) => a - b),
@@ -114,6 +116,7 @@ export function configFromState(state: WorkspaceState): WorkspaceConfig {
     layout: state.layout,
     zoom: state.zoom,
     syncScroll: state.syncScroll,
+    syncInput: state.syncInput,
     syncNav: state.syncNav,
     showFrames: state.showFrames,
     breakpoints: state.breakpoints,
@@ -133,6 +136,7 @@ interface WorkspaceState {
   mode: WorkspaceMode
   showFrames: boolean
   syncScroll: boolean
+  syncInput: boolean
   syncNav: boolean
   breakpoints: number[]
   breakpointHeight: number
@@ -164,6 +168,7 @@ interface WorkspaceState {
   setMode: (mode: WorkspaceMode) => void
   setShowFrames: (show: boolean) => void
   setSyncScroll: (value: boolean) => void
+  setSyncInput: (value: boolean) => void
   setSyncNav: (value: boolean) => void
   setBreakpoints: (values: number[]) => void
   addBreakpoint: (value: number) => void
@@ -198,7 +203,8 @@ export const useWorkspace = create<WorkspaceState>()(
       focusId: null,
       mode: 'devices',
       showFrames: true,
-      syncScroll: false,
+      syncScroll: true,
+      syncInput: true,
       syncNav: true,
       breakpoints: [...DEFAULT_BREAKPOINTS],
       breakpointHeight: 900,
@@ -361,6 +367,7 @@ export const useWorkspace = create<WorkspaceState>()(
       setMode: (mode) => set({ mode }),
       setShowFrames: (showFrames) => set({ showFrames }),
       setSyncScroll: (syncScroll) => set({ syncScroll }),
+      setSyncInput: (syncInput) => set({ syncInput }),
       setSyncNav: (syncNav) => set({ syncNav }),
 
       setBreakpoints: (values) =>
@@ -479,7 +486,17 @@ export const useWorkspace = create<WorkspaceState>()(
     }),
     {
       name: 'viewport.workspace.v1',
-      version: 1,
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<WorkspaceState>
+        // Interaction mirroring became the default: turn the synchronisation
+        // switches on for workspaces saved before it existed.
+        if (version < 2) {
+          state.syncScroll = true
+          state.syncInput = true
+        }
+        return state as WorkspaceState
+      },
       partialize: (state) => ({
         url: state.url,
         previews: state.previews,
@@ -488,6 +505,7 @@ export const useWorkspace = create<WorkspaceState>()(
         focusId: state.focusId,
         showFrames: state.showFrames,
         syncScroll: state.syncScroll,
+        syncInput: state.syncInput,
         syncNav: state.syncNav,
         breakpoints: state.breakpoints,
         breakpointHeight: state.breakpointHeight,

@@ -32,7 +32,9 @@ export function Workspace() {
   const mode = useWorkspace((state) => state.mode)
   const panel = useWorkspace((state) => state.panel)
   const syncScroll = useWorkspace((state) => state.syncScroll)
+  const syncInput = useWorkspace((state) => state.syncInput)
   const showFrames = useWorkspace((state) => state.showFrames)
+  const navigate = useWorkspace((state) => state.navigate)
 
   const setLayout = useWorkspace((state) => state.setLayout)
   const setPreviewPos = useWorkspace((state) => state.setPreviewPos)
@@ -192,6 +194,16 @@ export function Workspace() {
 
   useEffect(() => () => stopStream(streamRef.current), [])
 
+  /* --------------------------------------------------------- mirroring */
+
+  // A same-origin link pressed inside one preview moves every preview to that page.
+  const handleFrameNavigate = useCallback(
+    (href: string) => {
+      navigate(href)
+    },
+    [navigate],
+  )
+
   /* --------------------------------------------------------- scroll sync */
 
   const handleScrolled = useCallback((sourceId: string, ratio: number) => {
@@ -313,6 +325,8 @@ export function Workspace() {
       layout={layout}
       showFrames={showFrames}
       syncScroll={syncScroll}
+      syncInput={syncInput}
+      onFrameNavigate={handleFrameNavigate}
       rect={layout === 'freeform' ? (preview.pos ?? defaultRect(index)) : undefined}
       onRectChange={(rect) => setPreviewPos(preview.instanceId, rect)}
       onScrolled={handleScrolled}

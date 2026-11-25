@@ -9,8 +9,25 @@ const allowedHosts = (process.env.VITE_DEV_ALLOWED_HOSTS ?? '')
   .map((host) => host.trim())
   .filter(Boolean)
 
+/**
+ * The dev server falls back to index.html for `/demo/`, which would render the app
+ * inside its own previews. Production serves the static file directly; this keeps
+ * local development identical.
+ */
+function demoDirectoryPlugin() {
+  return {
+    name: 'viewport-demo-directory',
+    configureServer(server: { middlewares: { use: (fn: (req: { url?: string }, res: unknown, next: () => void) => void) => void } }) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url === '/demo' || req.url === '/demo/') req.url = '/demo/index.html'
+        next()
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), demoDirectoryPlugin()],
   server: {
     host: '0.0.0.0',
     port: 3003,

@@ -373,6 +373,156 @@
         font-weight: 500;
       }
 
+      /* Interactive lab — the controls VIEWPORT mirrors between previews. */
+      .lab {
+        display: grid;
+        gap: 18px;
+      }
+
+      .lab-tabs {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        justify-self: start;
+      }
+
+      .lab-tab {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 13px;
+        padding: 7px 16px;
+        border-radius: 99px;
+        cursor: pointer;
+        transition: background-color 140ms ease, color 140ms ease;
+      }
+
+      .lab-tab:hover {
+        color: var(--ink);
+      }
+
+      .lab-tab.is-active {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      .lab-panel-wrap {
+        border-top: 1px solid var(--line);
+        padding-top: 22px;
+        min-height: 128px;
+      }
+
+      .lab-panel {
+        display: none;
+        font-size: 14px;
+        color: var(--muted);
+        max-width: 58ch;
+      }
+
+      .lab-panel.is-active {
+        display: block;
+      }
+
+      .lab-panel h3 {
+        margin: 0 0 8px;
+        font-family: 'Instrument Serif', Georgia, serif;
+        font-size: 24px;
+        font-weight: 400;
+        color: var(--ink);
+      }
+
+      .lab-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: 14px;
+        border-top: 1px solid var(--line);
+        padding-top: 20px;
+      }
+
+      .lab-field {
+        display: grid;
+        gap: 6px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .lab-input {
+        font: inherit;
+        font-size: 14px;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 9px 12px;
+        min-width: 220px;
+      }
+
+      .lab-input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+
+      .lab-btn {
+        appearance: none;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 16px;
+        border-radius: 99px;
+        border: 1px solid var(--ink);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        transition: background-color 140ms ease, color 140ms ease, transform 120ms ease;
+      }
+
+      .lab-btn:hover {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      .lab-btn:active {
+        transform: scale(0.97);
+      }
+
+      .lab-count {
+        font-variant-numeric: tabular-nums;
+        min-width: 1.4em;
+        text-align: center;
+        padding: 0 6px;
+        border-radius: 99px;
+        background: rgba(43, 74, 63, 0.14);
+        color: var(--accent);
+      }
+
+      .lab-btn:hover .lab-count {
+        background: rgba(244, 241, 234, 0.16);
+        color: var(--paper);
+      }
+
+      .lab-echo {
+        margin: 0 0 2px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .lab-echo b {
+        color: var(--ink);
+        font-weight: 500;
+      }
+
       footer {
         padding: 30px 0 46px;
         font-size: 12px;
@@ -542,6 +692,61 @@
         </div>
       </section>
 
+      <section class="pad wrap" id="lab">
+        <div class="section-head">
+          <h2>Try the controls</h2>
+          <span>Mirrored into every preview</span>
+        </div>
+        <div class="lab">
+          <div class="lab-tabs" role="tablist" aria-label="Recording views">
+            <button class="lab-tab is-active" type="button" role="tab" aria-selected="true" data-view="0">
+              Field notes
+            </button>
+            <button class="lab-tab" type="button" role="tab" aria-selected="false" data-view="1">
+              Gear
+            </button>
+            <button class="lab-tab" type="button" role="tab" aria-selected="false" data-view="2">
+              Takes
+            </button>
+          </div>
+
+          <div class="lab-panel-wrap">
+            <div class="lab-panel is-active" role="tabpanel" data-panel="0">
+              <h3>Wind, 40 m, west ridge</h3>
+              A single omnidirectional pair, four minutes of coastline, and the quiet argument of a
+              loose shutter. Everything kept, nothing cleaned.
+            </div>
+            <div class="lab-panel" role="tabpanel" data-panel="1">
+              <h3>Two mics, one umbrella</h3>
+              A matched pair, a hydrophone in a felt bag, and a recorder that has outlived three
+              laptops. Weight matters more than range.
+            </div>
+            <div class="lab-panel" role="tabpanel" data-panel="2">
+              <h3>Take 07</h3>
+              Recorded at 04:12, twelve metres from the water. The take that ended up in the film is
+              the one where the boat horn interrupts everything.
+            </div>
+          </div>
+
+          <div class="lab-controls">
+            <label class="lab-field" for="lab-name">
+              Listener name
+              <input
+                id="lab-name"
+                class="lab-input"
+                type="text"
+                placeholder="Type here"
+                autocomplete="off"
+              />
+            </label>
+            <button class="lab-btn" id="lab-take" type="button">
+              Add a take <span class="lab-count" id="lab-count">0</span>
+            </button>
+            <p class="lab-echo">Signed as <b id="lab-echo">—</b></p>
+          </div>
+        </div>
+      </section>
+
       <section class="cta-band" id="contact">
         <div class="wrap inner">
           <h2>Have a scene that needs to sound like somewhere?</h2>
@@ -556,5 +761,36 @@
         <span>Lisbon · Glasgow · Tokyo</span>
       </div>
     </footer>
+
+    <script>
+      const tabs = Array.from(document.querySelectorAll('.lab-tab'))
+      const panels = Array.from(document.querySelectorAll('.lab-panel'))
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          tabs.forEach((item) => {
+            const active = item === tab
+            item.classList.toggle('is-active', active)
+            item.setAttribute('aria-selected', String(active))
+          })
+          panels.forEach((panel) => {
+            panel.classList.toggle('is-active', panel.dataset.panel === tab.dataset.view)
+          })
+        })
+      })
+
+      const count = document.getElementById('lab-count')
+      const takeButton = document.getElementById('lab-take')
+      let takes = 0
+      takeButton.addEventListener('click', () => {
+        takes += 1
+        count.textContent = String(takes)
+      })
+
+      const nameField = document.getElementById('lab-name')
+      const echo = document.getElementById('lab-echo')
+      nameField.addEventListener('input', () => {
+        echo.textContent = nameField.value.trim() || '—'
+      })
+    </script>
   </body>
 </html>
