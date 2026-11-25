@@ -1,0 +1,101 @@
+/* ============================================================================
+   VIEWPORT — additions and states shared across screens
+   ========================================================================== */
+
+.btn.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent-strong);
+}
+
+.btn--ghost.is-active {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.link {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: inherit;
+  padding: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-2);
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Fullscreen preview panes ------------------------------------------------ */
+
+.pane:fullscreen {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  background: #08090b;
+}
+
+.pane:fullscreen .pane__canvas {
+  padding: 40px;
+}
+
+.pane:fullscreen .pane__foot {
+  height: 30px;
+}
+
+/* Compare modal is full-bleed -------------------------------------------- */
+
+.modal--wide {
+  height: min(86vh, 900px);
+}
+
+.modal--wide .modal__body {
+  padding: 0;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Range inputs inside popovers */
+.popover .range {
+  --track: #2a2e38;
+}
+
+/* Numeric inputs without native spinners on WebKit */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* Selects */
+select.input {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #6a7080 50%),
+    linear-gradient(135deg, #6a7080 50%, transparent 50%);
+  background-position: calc(100% - 14px) 14px, calc(100% - 9px) 14px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 26px;
+}
+
+/* Print / misc */
+@media (max-width: 720px) {
+  .topbar__actions .icon-btn:nth-last-child(n + 6) {
+    display: none;
+  }
+}

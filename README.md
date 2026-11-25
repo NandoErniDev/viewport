@@ -1,0 +1,225 @@
+# VIEWPORT
+
+**Every screen. One view.**
+
+VIEWPORT is a responsive website testing studio that runs entirely in the browser. Enter a URL, see the site rendered in multiple real device viewports at the same time, explore breakpoints, capture screenshots and compare layouts — without resizing windows or switching devices.
+
+- **Live app:** https://viewport.naerdev.ch
+- **Workspace:** https://viewport.naerdev.ch/workspace
+
+---
+
+## Why it exists
+
+Testing a responsive layout usually means dragging a browser window, opening devtools, resizing, and repeating. That shows one viewport at a time and destroys the context of how several screens relate to each other.
+
+VIEWPORT keeps every target viewport visible at once. Each preview is an independent, interactive browser frame loaded at an exact CSS viewport size — not a mockup, not a screenshot, not a simulation.
+
+---
+
+## Features
+
+### Live previews
+- One, two, three or four (up to eight) independent iframes pointing at the same URL by default.
+- Each preview has its own reload, orientation, fullscreen, screenshot, external-open and remove controls.
+- Independent loading state per frame, with a clear message when a site refuses to be framed.
+- Scrolling, clicking and normal interaction work inside each preview wherever the embedded site permits it.
+
+### Device library
+- 26 presets across phones, tablets, laptops and desktop.
+- Accurate **CSS viewport** dimensions (`window.innerWidth`/`innerHeight`), not physical panel resolution.
+- Pixel ratio stored for reference, plus a category and orientation for every device.
+- Portrait/landscape switching per preview.
+- Custom devices: name, width, height, pixel ratio, orientation and frame style, saved locally.
+
+### Workspace layouts
+- **Grid** — automatic, balanced columns.
+- **Horizontal** — one row of equal columns.
+- **Vertical** — a scrolling stack.
+- **Freeform** — drag previews anywhere and resize them from the corner.
+- **Focus** — a single preview, given the whole canvas.
+- Zoom: fit-to-pane or fixed 25–100 %, applied consistently for comparison.
+
+### Breakpoint explorer
+- A horizontal rail rendering the site at 375, 390, 430, 640, 768, 1024, 1280 and 1440 px simultaneously.
+- Add, remove and edit breakpoints.
+- A continuous width slider: drag it to reflow the selected breakpoint in real time at 1 px precision.
+- Configurable preview height and a ruler with common breakpoint marks.
+
+### Screenshots and comparison
+- Capture any preview, or all of them at once.
+- Comparison studio: side by side, overlay with an opacity slider, or a difference map with a changed-pixel percentage.
+- PNG download for every capture and for the diff, with configurable filename prefix.
+- Captures are **real pixels from your display**, taken through the browser's display-capture API and cropped to the preview. This works for cross-origin sites that cannot be rasterised from JavaScript, and the UI says exactly that.
+
+### Synchronisation
+- **Navigation sync** — a new URL loads everywhere (it can also target a single preview).
+- **Reload all** — one action (or ⌘/Ctrl + R) refreshes every frame; individual reloads stay individual.
+- **Scroll sync** — mirrors scroll position between previews, only where the browser allows reading a frame's scroll position (same-origin documents). Cross-origin frames are labelled "No sync" instead of silently doing nothing.
+
+### Sessions and sharing
+- Saved workspaces in `localStorage`: URL, devices, dimensions, layout, zoom and sync settings.
+- Recently tested URLs.
+- Share links encode the configuration only (base64url in the URL hash-free query). No captured images, cookies, tokens or credentials are ever included.
+- No account required.
+
+### Keyboard-first
+| Shortcut | Action |
+| --- | --- |
+| `⌘/Ctrl + K` | Focus the URL input |
+| `⌘/Ctrl + R` | Reload every preview |
+| `⌘/Ctrl + S` | Save the current workspace |
+| `1` | Single preview (focus mode) |
+| `2` / `3` | Two / three-column layout |
+| `4` | Grid layout |
+| `F` | Fullscreen the selected preview |
+| `B` | Toggle breakpoint explorer |
+| `G` | Toggle device library |
+| `Esc` | Close panels and dialogs |
+| `?` | Shortcut reference |
+
+---
+
+## Tech stack
+
+| Layer | Choice | Reason |
+| --- | --- | --- |
+| UI | React 19 + TypeScript | Component model fits a multi-pane workspace; strict types guard the preview state machine. |
+| Build | Vite 6 | Fast dev server, deterministic static output, no server runtime needed. |
+| State | Zustand (with `persist`) | Small store with selective subscriptions so a store update does not re-render every iframe. |
+| Icons | Lucide | Consistent, restrained icon set. |
+| Styling | Hand-written CSS with design tokens | Full control over a bespoke dark interface; no utility-class noise in complex frame markup. |
+| Hosting | Vercel (static) | Global CDN for an entirely client-side app. DNS on Cloudflare. |
+
+No backend, no database, no analytics, no third-party scripts.
+
+---
+
+## Getting started
+
+Requirements: Node.js 20+ and npm.
+
+```bash
+npm install
+npm run dev        # http://localhost:3003
+```
+
+Production build:
+
+```bash
+npm run build      # type-check + bundle into dist/
+npm run preview    # serve the production bundle locally
+```
+
+Quality checks:
+
+```bash
+npm run typecheck  # tsc --noEmit
+```
+
+---
+
+## Project structure
+
+```
+public/
+  demo/index.html        # built-in sample site used for first-run previews and the landing demo
+  favicon.svg
+src/
+  main.tsx               # entry point + style imports
+  App.tsx                # tiny path router (landing vs workspace)
+  pages/
+    Landing.tsx          # marketing page with a live three-device demo
+    Workspace.tsx        # workspace orchestration: layouts, capture, shortcuts
+  components/
+    TopBar.tsx           # URL bar, presets, zoom, layouts, sync, share
+    PreviewPane.tsx      # one live frame: scaling, loading, probe, scroll sync, drag
+    DeviceLibrary.tsx    # preset drawer
+    BreakpointView.tsx   # breakpoint rail + live width slider
+    ComparePanel.tsx     # capture comparison studio
+    CustomDeviceDialog.tsx
+    SessionsPanel.tsx
+    SettingsPanel.tsx
+    ShortcutsDialog.tsx
+    ui.tsx               # buttons, popovers, modal, switch, toasts
+  lib/
+    types.ts             # domain types
+    devices.ts           # device preset library
+    store.ts             # workspace state, persistence, sessions, share config
+    capture.ts           # display capture + image diff
+    probe.ts             # best-effort framing policy check
+    sync.ts              # same-origin scroll synchronisation
+    router.ts            # pushState router
+    utils.ts             # URL normalisation, sharing codec, helpers
+  styles/
+    base.css             # tokens + primitives + app shell
+    workspace.css        # panes, frames, panels, breakpoints, compare
+    landing.css          # landing page
+    utilities.css        # states, fullscreen, misc
+```
+
+---
+
+## Architecture notes
+
+### Preview engine
+`PreviewPane` owns a single iframe and nothing else knows about it. Device frame, scale and chrome are pure CSS around a fixed-size iframe (`width`/`height` in CSS pixels, scaled with `transform`), so the embedded page always lays out at the requested viewport size. Zoom never changes the page's viewport — only how it is displayed.
+
+Scale is computed from a `ResizeObserver` on the pane when zoom is "fit"; fixed zoom bypasses measurement so multiple previews can be compared at identical scale.
+
+Reloading uses a `nonce` in the iframe `key`, which remounts exactly one frame. State outside that pane is untouched.
+
+### State
+A single Zustand store holds the workspace (`url`, `previews[]`, layout, zoom, sync flags, breakpoints, custom devices, sessions). Transient UI (open popover, drag rectangle, loaded state) is local component state. `persist` writes the durable slice to `localStorage` under `viewport.workspace.v1`; captures and open panels are deliberately excluded.
+
+### Capture
+There is no way to rasterise a cross-origin iframe from JavaScript — `canvas` would be tainted. Instead VIEWPORT calls `getDisplayMedia` once, then crops each preview's on-screen rectangle out of the captured tab. That yields genuine rendered pixels for any embeddable site, at display resolution. The trade-off (a permission prompt, and output resolution following the display) is stated in the UI rather than hidden.
+
+The difference map draws both captures into equally sized canvases, compares luminance per pixel and highlights changed areas. It is an approximate visual diff, not a pixel-perfect regression baseline, and is labelled as such.
+
+### Honest limits
+- **Framing policies.** `X-Frame-Options: DENY/SAMEORIGIN` and CSP `frame-ancestors` stop embedding. VIEWPORT never proxies or strips headers. When the policy can be read (CORS-permitted response headers, checked with a lightweight `HEAD` request) it is named in the preview; otherwise a timeout notice appears with an "open in a new tab" action.
+- **Scroll sync.** Browsers do not expose scroll offsets of cross-origin frames. Sync is applied only to same-origin documents; every other preview shows a "No sync" indicator with an explanation.
+- **Full-page screenshots.** Not possible for cross-origin embeds without a server-side browser. VIEWPORT captures what is visible instead of claiming otherwise.
+- **Device pixel ratio.** A preview runs on the host display; the recorded DPR is a reference value.
+
+---
+
+## Deployment
+
+The app is a static bundle. On Vercel: framework **Vite**, build command `npm run build`, output directory `dist`, `vercel.json` rewrites all non-asset paths to `index.html` for the `/workspace` route.
+
+DNS: `viewport.naerdev.ch` is a DNS-only CNAME to Vercel's edge, configured in the existing Cloudflare zone for `naerdev.ch`. No other records in that zone are modified.
+
+To deploy your own copy:
+
+```bash
+npm run build
+npx vercel deploy --prod   # or connect the repository in the Vercel dashboard
+```
+
+---
+
+## Privacy
+
+- No accounts, no cookies, no tracking, no analytics, no remote logging.
+- The only network traffic is the URL you choose to preview (plus a single `HEAD` request for framing detection).
+- Saved workspaces, custom devices and history live in your browser's `localStorage`.
+- Share links contain configuration only. Review a link before sending it if your workspace URL itself is private.
+- Secret material is never stored in the repository; `.env` files are ignored.
+
+---
+
+## Known limitations
+
+- Sites that block embedding cannot be previewed; they open in a new tab instead.
+- Screenshots require display-capture support (Chrome, Edge or Safari on HTTPS) and one permission grant per session.
+- Scroll sync is same-origin only, for browser security reasons.
+- Freeform positions are per-workspace and reset when you change layout away from freeform and back.
+- Very heavy sites may load more slowly in several simultaneous frames; previews load lazily and independently.
+
+---
+
+## Status
+
+Built and maintained as an independent developer tool. Device names are trademarks of their respective owners and are used only to describe viewport sizes.
