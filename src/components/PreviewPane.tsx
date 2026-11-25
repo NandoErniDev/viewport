@@ -329,11 +329,7 @@ export const PreviewPane = memo(function PreviewPane({
           style={{ width: outerWidth * scale, height: outerHeight * scale }}
         >
           <div
-            className={cn(
-              'device',
-              `device--${spec.tone}`,
-              spec.island === 'dynamic' && 'device--island',
-            )}
+            className={cn('device', `device--${spec.tone}`)}
             style={{
               width: outerWidth,
               height: outerHeight,

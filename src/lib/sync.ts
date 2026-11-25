@@ -2,8 +2,9 @@
  * Scroll synchronisation between preview frames.
  *
  * Browsers only allow reading or writing the scroll position of a frame whose
- * document is same-origin. For every other site this module reports "unavailable"
- * instead of pretending to sync — no proxy, no bypass.
+ * document is same-origin. As soon as a frame shows a cross-origin document its
+ * `contentDocument` is `null`, so that is reported immediately instead of after a
+ * timeout. No proxy, no bypass.
  */
 
 const registry = new Map<string, HTMLIFrameElement>()
@@ -24,16 +25,6 @@ function scrollElement(frame: HTMLIFrameElement): HTMLElement | null {
   }
 }
 
-export function readScrollRatio(instanceId: string): number | null {
-  const frame = registry.get(instanceId)
-  if (!frame) return null
-  const scroller = scrollElement(frame)
-  if (!scroller) return null
-  const max = scroller.scrollHeight - scroller.clientHeight
-  if (max < 8) return null
-  return scroller.scrollTop / max
-}
-
 export function writeScrollRatio(instanceId: string, ratio: number): void {
   const frame = registry.get(instanceId)
   if (!frame) return
@@ -45,7 +36,7 @@ export function writeScrollRatio(instanceId: string, ratio: number): void {
   scroller.scrollTop = Math.round(ratio * max)
 }
 
-export function isSuppressed(instanceId: string): boolean {
+function isSuppressed(instanceId: string): boolean {
   const until = suppressUntil.get(instanceId) ?? 0
   return Date.now() < until
 }
@@ -56,8 +47,9 @@ export interface ScrollSyncHandlers {
 }
 
 /**
- * Waits for the frame document to become readable, then mirrors scroll events.
- * Returns a cleanup function. Polling stops after 20s if the document stays opaque.
+ * Waits for the frame document, then mirrors scroll events. Returns a cleanup
+ * function. A cross-origin frame has no readable document at all, which settles
+ * the answer in the first probe rather than after a timeout.
  */
 export function attachScrollSync(
   instanceId: string,
@@ -68,19 +60,46 @@ export function attachScrollSync(
   let scroller: HTMLElement | null = null
   let attempts = 0
 
-  const timer = window.setInterval(() => {
+  const settle = (available: boolean) => {
+    window.clearInterval(timer)
+    handlers.onAvailability(available)
+  }
+
+  const probe = () => {
     attempts += 1
-    const candidate = scrollElement(frame)
-    if (!candidate) {
-      if (attempts > 50) {
-        window.clearInterval(timer)
-        handlers.onAvailability(false)
-      }
+
+    let doc: Document | null = null
+    try {
+      doc = frame.contentDocument ?? null
+    } catch {
+      doc = null
+    }
+    if (!doc) {
+      settle(false)
       return
     }
+
+    let href = ''
+    try {
+      href = doc.location.href
+    } catch {
+      href = ''
+    }
+    if (!href || href === 'about:blank' || doc.readyState !== 'complete') {
+      // An unfinished document is not an answer yet; give it six seconds.
+      if (attempts > 60) settle(false)
+      return
+    }
+
+    const candidate = (doc.scrollingElement as HTMLElement | null) ?? doc.documentElement
+    if (!candidate) {
+      settle(false)
+      return
+    }
+
     window.clearInterval(timer)
-    scroller = candidate
     handlers.onAvailability(true)
+    scroller = candidate
     listener = () => {
       if (isSuppressed(instanceId)) return
       const max = candidate.scrollHeight - candidate.clientHeight
@@ -88,7 +107,10 @@ export function attachScrollSync(
       handlers.onScroll(candidate.scrollTop / max)
     }
     candidate.ownerDocument.addEventListener('scroll', listener, { passive: true })
-  }, 400)
+  }
+
+  const timer = window.setInterval(probe, 100)
+  probe()
 
   return () => {
     window.clearInterval(timer)

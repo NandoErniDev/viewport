@@ -196,11 +196,6 @@ export interface MirrorHandlers {
   onNavigate?: (href: string) => void
 }
 
-/** True when this frame's document can be read and scripted by us. */
-export function isMirrorable(frame: HTMLIFrameElement): boolean {
-  return readableDoc(frame) !== null
-}
-
 export function detachMirror(id: string): void {
   bindings.delete(id)
 }
@@ -342,7 +337,7 @@ export function attachMirrorWhenReady(
       handlers.onAvailability?.(false)
       window.clearInterval(timer)
     }
-  }, 14000) as unknown as number
+  }, 6000) as unknown as number
 
   return () => {
     stopped = true

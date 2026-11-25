@@ -209,8 +209,9 @@ npx vercel deploy --prod   # or connect the repository in the Vercel dashboard
 
 ## Privacy
 
-- No accounts, no cookies, no tracking, no analytics, no remote logging.
-- The only network traffic is the URL you choose to preview.
+- No accounts, no cookies, no tracking, no analytics. The app writes no logs and sends nothing anywhere on its own.
+- Previewing a URL loads that URL, exactly as a normal browser tab would.
+- One extra request goes to VIEWPORT's own `/api/frame-check` endpoint for each new URL. It asks that same URL for its `X-Frame-Options` / `frame-ancestors` headers, because a browser gives the host page no signal when a site refuses to be embedded. The function receives the URL, returns headers only, never downloads a response body, refuses loopback and private hosts, and the answer is cached for ten minutes. Nothing is stored and no third party is involved.
 - Saved workspaces, custom devices and history live in your browser's `localStorage`.
 - Share links contain configuration only. Review a link before sending it if your workspace URL itself is private.
 - Secret material is never stored in the repository; `.env` files are ignored.

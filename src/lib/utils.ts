@@ -73,15 +73,6 @@ export function normalizeUrl(raw: string): UrlResult {
   return { ok: true, url: parsed.toString() }
 }
 
-export function hostOf(url: string): string {
-  if (isInternalUrl(url)) return 'Sample site'
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return url
-  }
-}
-
 export function displayUrl(url: string): string {
   if (isInternalUrl(url)) return 'viewport / demo'
   try {
