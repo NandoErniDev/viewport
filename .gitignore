@@ -36,6 +36,9 @@ logs/
 Thumbs.db
 *.swp
 
+# local artefacts (screenshots used during development)
+artifacts/
+
 # tooling caches
 .cache/
 .temp/
