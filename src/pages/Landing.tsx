@@ -96,10 +96,15 @@ function StageFrame({ device, raised, onRaise }: { device: StageDevice; raised: 
     return () => observer.disconnect()
   }, [])
 
-  const scale = Math.min(
-    slot.width / device.width || 0,
-    slot.height / device.height || 0,
-    1,
+  // Slots are measured from their grid track, so the frame can never force the
+  // deck wider than its column (the iframe has a fixed intrinsic width).
+  const scale = Math.max(
+    0,
+    Math.min(
+      (slot.width - 12) / device.width || 0,
+      (slot.height - 44) / device.height || 0,
+      1,
+    ),
   )
 
   return (

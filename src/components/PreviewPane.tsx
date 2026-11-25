@@ -91,11 +91,13 @@ export const PreviewPane = memo(function PreviewPane({
     return () => observer.disconnect()
   }, [])
 
+  // `stageSize` is the canvas content box, so only the frame chrome and a small
+  // gutter need to be subtracted here.
   const bezel = effectiveFrame === 'bezel' ? 18 : effectiveFrame === 'outline' ? 2 : 0
   const fitScale = clampScale(
     Math.min(
-      (Math.max(stageSize.width, 120) - 48 - bezel) / preview.width,
-      (Math.max(stageSize.height, 120) - 48 - bezel) / preview.height,
+      (Math.max(stageSize.width, 120) - bezel - 14) / preview.width,
+      (Math.max(stageSize.height, 120) - bezel - 14) / preview.height,
     ),
   )
   const scale = zoom === 0 ? fitScale : zoom
