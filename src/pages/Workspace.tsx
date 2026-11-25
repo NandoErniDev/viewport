@@ -344,7 +344,7 @@ export function Workspace() {
               className={`layout layout--${layout}`}
               style={
                 layout === 'grid'
-                  ? { gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`, gridAutoRows: 'minmax(0, 1fr)' }
+                  ? { gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))` }
                   : undefined
               }
             >

@@ -26,7 +26,7 @@ VIEWPORT keeps every target viewport visible at once. Each preview is an indepen
 - Scrolling, clicking and normal interaction work inside each preview wherever the embedded site permits it.
 
 ### Device library
-- 26 presets across phones, tablets, laptops and desktop.
+- 21 presets across phones, tablets, laptops and desktop.
 - Accurate **CSS viewport** dimensions (`window.innerWidth`/`innerHeight`), not physical panel resolution.
 - Pixel ratio stored for reference, plus a category and orientation for every device.
 - Portrait/landscape switching per preview.

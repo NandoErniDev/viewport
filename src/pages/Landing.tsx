@@ -354,7 +354,7 @@ export function Landing() {
               </p>
               <ul className="devices__notes">
                 <li>
-                  <span className="mono">26</span> presets across four categories
+                  <span className="mono">21</span> presets across four categories
                 </li>
                 <li>
                   <span className="mono">160–4096</span> px custom widths and heights
