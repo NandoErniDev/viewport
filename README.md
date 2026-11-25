@@ -147,7 +147,6 @@ src/
     devices.ts           # device preset library
     store.ts             # workspace state, persistence, sessions, share config
     capture.ts           # display capture + image diff
-    probe.ts             # best-effort framing policy check
     sync.ts              # same-origin scroll synchronisation
     router.ts            # pushState router
     utils.ts             # URL normalisation, sharing codec, helpers
@@ -178,7 +177,7 @@ There is no way to rasterise a cross-origin iframe from JavaScript — `canvas` 
 The difference map draws both captures into equally sized canvases, compares luminance per pixel and highlights changed areas. It is an approximate visual diff, not a pixel-perfect regression baseline, and is labelled as such.
 
 ### Honest limits
-- **Framing policies.** `X-Frame-Options: DENY/SAMEORIGIN` and CSP `frame-ancestors` stop embedding. VIEWPORT never proxies or strips headers. When the policy can be read (CORS-permitted response headers, checked with a lightweight `HEAD` request) it is named in the preview; otherwise a timeout notice appears with an "open in a new tab" action.
+- **Framing policies.** `X-Frame-Options: DENY/SAMEORIGIN` and CSP `frame-ancestors` stop embedding. VIEWPORT never proxies or strips headers, so it cannot read those headers cross-origin. It detects frames that never finish loading, explains both possible policies and offers an "open in a new tab" action; the per-preview **Blank?** note repeats the explanation on demand.
 - **Scroll sync.** Browsers do not expose scroll offsets of cross-origin frames. Sync is applied only to same-origin documents; every other preview shows a "No sync" indicator with an explanation.
 - **Full-page screenshots.** Not possible for cross-origin embeds without a server-side browser. VIEWPORT captures what is visible instead of claiming otherwise.
 - **Device pixel ratio.** A preview runs on the host display; the recorded DPR is a reference value.
@@ -203,7 +202,7 @@ npx vercel deploy --prod   # or connect the repository in the Vercel dashboard
 ## Privacy
 
 - No accounts, no cookies, no tracking, no analytics, no remote logging.
-- The only network traffic is the URL you choose to preview (plus a single `HEAD` request for framing detection).
+- The only network traffic is the URL you choose to preview.
 - Saved workspaces, custom devices and history live in your browser's `localStorage`.
 - Share links contain configuration only. Review a link before sending it if your workspace URL itself is private.
 - Secret material is never stored in the repository; `.env` files are ignored.

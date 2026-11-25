@@ -14,7 +14,6 @@ import {
 import type { Layout, Preview, Rect } from '../lib/types'
 import { cn, displayUrl } from '../lib/utils'
 import { useWorkspace } from '../lib/store'
-import { probeFraming, type FramingResult } from '../lib/probe'
 import { attachScrollSync, registerPane } from '../lib/sync'
 import { IconButton, Popover } from './ui'
 
@@ -53,7 +52,6 @@ export const PreviewPane = memo(function PreviewPane({
 }: PreviewPaneProps) {
   const url = preview.url ?? workspaceUrl
   const externalUrl = url.startsWith('/') ? new URL(url, window.location.href).toString() : url
-  const isInternal = url.startsWith('/')
 
   const paneRef = useRef<HTMLElement | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
@@ -67,7 +65,6 @@ export const PreviewPane = memo(function PreviewPane({
 
   const [loaded, setLoaded] = useState(false)
   const [stalled, setStalled] = useState(false)
-  const [blocked, setBlocked] = useState<FramingResult | null>(null)
   const [noticeDismissed, setNoticeDismissed] = useState(false)
   const [embedHelpOpen, setEmbedHelpOpen] = useState(false)
   const [syncAvailable, setSyncAvailable] = useState<boolean | null>(null)
@@ -112,22 +109,13 @@ export const PreviewPane = memo(function PreviewPane({
   }, [url, preview.nonce])
 
   useEffect(() => {
-    if (loaded) return
+    if (loaded) {
+      setStalled(false)
+      return
+    }
     const timer = window.setTimeout(() => setStalled(true), SLOW_LOAD_MS)
     return () => window.clearTimeout(timer)
   }, [loaded, url, preview.nonce])
-
-  useEffect(() => {
-    setBlocked(null)
-    if (isInternal) return
-    let cancelled = false
-    probeFraming(url).then((result) => {
-      if (!cancelled && result.status === 'blocked') setBlocked(result)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [url, isInternal])
 
   /* -------------------------------------------------------- scroll sync */
 
@@ -206,7 +194,7 @@ export const PreviewPane = memo(function PreviewPane({
         })()
       : undefined
 
-  const showBlockedNotice = (blocked || stalled) && !noticeDismissed
+  const showBlockedNotice = stalled && !noticeDismissed
 
   return (
     <section
@@ -323,12 +311,9 @@ export const PreviewPane = memo(function PreviewPane({
           <div className="pane__notice" role="status">
             <Info size={14} strokeWidth={1.8} />
             <div style={{ flex: 1 }}>
-              <strong>
-                {blocked ? 'This site refuses to be framed' : 'This preview is taking a while'}
-              </strong>
-              {blocked
-                ? `${blocked.detail ?? 'A framing policy'} blocks embedding. OPEN IN A NEW TAB to test it at this size.`
-                : 'Some sites block embedding via X-Frame-Options or CSP, which can leave the frame blank.'}
+              <strong>This preview is taking a while</strong>
+              Some sites block embedding with X-Frame-Options or a CSP frame-ancestors rule, which
+              leaves the frame blank. Open it in a new tab to test it at this size.
               <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
                 <a href={externalUrl} target="_blank" rel="noreferrer noopener">
                   Open in a new tab
