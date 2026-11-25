@@ -111,9 +111,10 @@ export default async function handler(req, res) {
   try {
     const response = await request(target.href, controller.signal)
     const xfo = response.headers.get('x-frame-options')
-    const ancestors =
-      frameAncestors(response.headers.get('content-security-policy')) ??
-      frameAncestors(response.headers.get('content-security-policy-report-only'))
+    // Report-only policies are not enforced by any browser, so they must not be
+    // reported as a restriction. Wikipedia, for example, lists frame-ancestors
+    // only in the report-only header and embeds perfectly well.
+    const ancestors = frameAncestors(response.headers.get('content-security-policy'))
     const verdict = classify(xfo, ancestors)
 
     res.statusCode = 200

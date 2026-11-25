@@ -26,6 +26,10 @@ interface RawVerdict {
 
 const cache = new Map<string, Promise<FrameVerdict>>()
 
+function shortenDetail(detail: string): string {
+  return detail.length > 72 ? `${detail.slice(0, 71)}…` : detail
+}
+
 function isHttp(url: string): boolean {
   return /^https?:\/\//i.test(url)
 }
@@ -57,17 +61,25 @@ export function checkEmbedding(url: string): Promise<FrameVerdict> {
       const data = (await response.json()) as RawVerdict
 
       if (data.reachable === false) {
-        return { state: 'unreachable', detail: data.detail ?? 'The site could not be reached.', target: key }
+        return {
+          state: 'unreachable',
+          detail: shortenDetail(data.detail ?? 'The site could not be reached.'),
+          target: key,
+        }
       }
 
       const sameOrigin = resolved.origin === window.location.origin
       if (data.restriction === 'deny') {
-        return { state: 'blocked', detail: data.detail ?? 'Framing is refused.', target: key }
+        return { state: 'blocked', detail: shortenDetail(data.detail ?? 'Framing is refused.'), target: key }
       }
       if (data.restriction === 'restricted') {
         // SAMEORIGIN still allows a preview of a page on this very origin.
         if (sameOrigin) return { state: 'ok', detail: '', target: key }
-        return { state: 'blocked', detail: data.detail ?? 'Only same-origin framing is allowed.', target: key }
+        return {
+          state: 'blocked',
+          detail: shortenDetail(data.detail ?? 'Only same-origin framing is allowed.'),
+          target: key,
+        }
       }
       return { state: 'ok', detail: '', target: key }
     } catch {
