@@ -56,9 +56,10 @@ export function findPreset(id: string, custom: DevicePreset[] = []): DevicePrese
 }
 
 export function defaultFrameFor(category: DeviceCategory): Preview['frameStyle'] {
-  if (category === 'phone' || category === 'tablet') return 'bezel'
-  if (category === 'custom') return 'bezel'
-  return 'outline'
+  // Every device that has a physical body gets one. Only a desktop viewport is a
+  // bare screen with no hardware around it.
+  if (category === 'desktop') return 'outline'
+  return 'bezel'
 }
 
 export function previewFromPreset(preset: DevicePreset): Preview {

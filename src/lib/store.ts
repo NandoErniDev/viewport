@@ -486,7 +486,7 @@ export const useWorkspace = create<WorkspaceState>()(
     }),
     {
       name: 'viewport.workspace.v1',
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as Partial<WorkspaceState>
         // Interaction mirroring became the default: turn the synchronisation
@@ -494,6 +494,15 @@ export const useWorkspace = create<WorkspaceState>()(
         if (version < 2) {
           state.syncScroll = true
           state.syncInput = true
+        }
+        // Laptops used to default to a bare outline; they have a body now.
+        if (version < 3 && Array.isArray(state.previews)) {
+          state.previews = state.previews.map((preview) =>
+            preview.frameStyle === 'outline' &&
+            (preview.category === 'laptop' || preview.category === 'tablet' || preview.category === 'phone')
+              ? { ...preview, frameStyle: 'bezel' }
+              : preview,
+          )
         }
         return state as WorkspaceState
       },
